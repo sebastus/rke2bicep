@@ -52,7 +52,8 @@ write_files:
         "vnetResourceGroup": "{resource_group}",
         "routeTableName": "{route_table_name}",
         "cloudProviderBackoff": false,
-        "useManagedIdentityExtension": false,
+        "useManagedIdentityExtension": true,
+        "userAssignedIdentityID": {clientID},
         "useInstanceMetadata": true,
         "loadBalancerSku": "standard",
         "excludeMasterFromStandardLB": false
@@ -70,14 +71,16 @@ write_files:
 
   - content: |
       chmod 666 /etc/rancher/rke2/rke2.yaml
-      echo $(cat <<EOF
+
+      newLines=$(cat <<'EOF'
       # set PATH so it includes rancher bin if it exists
       if [ -d "/var/lib/rancher/rke2/bin" ] ; then
         PATH="/var/lib/rancher/rke2/bin:$PATH"
       fi
       export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
       EOF
-      ) >> /home/{username}/.profile
+      ) 
+      echo "$newLines" >> /home/{username}/.profile
 
     path: /root/configureAdmin
     owner: root:root

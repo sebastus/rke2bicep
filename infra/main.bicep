@@ -99,6 +99,7 @@ var serverCustomData7 = replace(serverCustomData6, '{nsg_name}', serverNsg.outpu
 var serverCustomData8 = replace(serverCustomData7, '{vnet_name}', network.outputs.vnetName)
 var serverCustomData9 = replace(serverCustomData8, '{route_table_name}', '${serverName}RouteTable')
 var serverCustomDataA = replace(serverCustomData9, '{username}', userName)
+var serverCustomDataB = replace(serverCustomDataA, '{clientID}', vmIdentity.properties.clientId)
 
 module vmServer1 'modules/vm.bicep' = {
   name: serverName
@@ -113,7 +114,7 @@ module vmServer1 'modules/vm.bicep' = {
     netVnet: network.outputs.vnetName
     netSubnet: network.outputs.aksSubnetName
     networkSecurityGroupID: serverNsg.outputs.id
-    customData: serverCustomDataA
+    customData: serverCustomDataB
     userAssignedIdentity: vmIdentity.id
   }
 }
