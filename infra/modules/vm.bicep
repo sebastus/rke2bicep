@@ -19,13 +19,7 @@ param adminPasswordOrKey string
 param dnsLabelPrefix string = toLower('${vmName}-${uniqueString(resourceGroup().id)}')
 
 @description('The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version.')
-@allowed([
-  '12.04.5-LTS'
-  '14.04.5-LTS'
-  '16.04.0-LTS'
-  '18.04-LTS'
-])
-param ubuntuOSVersion string = '18.04-LTS'
+param ubuntuOSSku string = '20_04-lts'
 
 @description('Location for all resources.')
 param location string = resourceGroup().location
@@ -45,14 +39,6 @@ param customData string = '''
 
 @description('User assigned identity having access to kv')
 param userAssignedIdentity string
-
-@description('Name of the Network Security Group')
-param networkSecurityGroupName string = 'SecGroupNet'
-
-// @description('Array of rules for the nsg')
-// param networkSecurityGroupRules array = [
-//   {}
-// ]
 
 @description('Resource ID of nsg')
 param networkSecurityGroupID string
@@ -143,8 +129,8 @@ resource vm 'Microsoft.Compute/virtualMachines@2020-06-01' = {
       }
       imageReference: {
         publisher: 'Canonical'
-        offer: 'UbuntuServer'
-        sku: ubuntuOSVersion
+        offer: '0001-com-ubuntu-server-focal'
+        sku: ubuntuOSSku
         version: 'latest'
       }
     }

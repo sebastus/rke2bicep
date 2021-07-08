@@ -34,6 +34,40 @@ write_files:
     path: /root/storeServerToken
     owner: root:root
 
+  - content: |
+
+      {
+        "cloud": "AzurePublicCloud",
+        "tenantId": "{tenant_id}",
+        "aadClientId": "__CHANGE_ME__",
+        "aadClientSecret": "__CHANGE_ME__",
+        "subscriptionId": "__CHANGE_ME__",
+        "resourceGroup": "{resource_group}",
+        "vmType": "standard",
+        "location": "{location}",
+        "subnetName": "{subnet_name}",
+        "securityGroupName": "{nsg_name}",
+        "securityGroupResourceGroup": "{resource_group}",
+        "vnetName": "{vnet_name}",
+        "vnetResourceGroup": "{resource_group}",
+        "routeTableName": "{route_table_name}",
+        "cloudProviderBackoff": false,
+        "useManagedIdentityExtension": false,
+        "useInstanceMetadata": true,
+        "loadBalancerSku": "standard",
+        "excludeMasterFromStandardLB": false
+      }
+
+    path: /root/azure.json
+    owner: root:root
+
+  - content: |
+      cloud-provider-name: azure
+      cloud-provider-config: /root/azure.json
+
+    path: /etc/rancher/rke2/config.yaml
+    owner: root:root
+
 runcmd:
   - [ chmod, +x, /root/installRKE2server ]
   - [ chmod, +x, /root/storeServerToken ]

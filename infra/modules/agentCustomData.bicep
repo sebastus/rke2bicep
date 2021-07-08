@@ -22,7 +22,7 @@ write_files:
     owner: root:root
 
   - content: |
-      server: http://<rke2server>:9345
+      server: https://<rke2server>:9345
 
     path: /etc/rancher/rke2/config.yaml
     owner: root:root
@@ -42,7 +42,7 @@ runcmd:
 
 
   - [ sh, -c, echo \"####################\" ]
-  - [ sh, -c, echo \"Installing and starting RKE2 agent\" ]
+  - [ sh, -c, echo \"Installing and enabling RKE2 agent\" ]
   - [ sh, -c, echo \"####################\" ]
   - [ /root/installRKE2agent ]
   - [ systemctl, enable, rke2-agent.service ]
@@ -53,6 +53,12 @@ runcmd:
   - [ sh, -c, echo \"Fetching server join token from kv\" ]
   - [ sh, -c, echo \"####################\" ]
   - [ /root/fetchServerToken ]
+
+  - [ sh, -c, echo \"####################\" ]
+  - [ sh, -c, echo \"Starting RKE2 agent\" ]
+  - [ sh, -c, echo \"####################\" ]
+  - [ systemctl, start, rke2-agent.service ]
+
 '''
 
 output customDataString string = cloudConfig

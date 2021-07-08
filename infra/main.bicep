@@ -6,6 +6,7 @@ param suffix string = 'bigbang-${substring(uniqueString(resGroupName), 0, 4)}'
 param tenantId string = ''
 param userObjectId string = ''
 param userIPAddress string
+param serverName string = 'rke2-server'
 
 var sshPublicKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDWuqe/MKBbgm9dWEHq9Qr9/qliQSbv6OQ/43SjQoKGBKn8QKKEAaSm8l9PAgKQ7tW/frSAX8VrD+pSFh3MqphFWZTfOvUZQHmts7TdoyxVTgfGO5ThQwHuQpBXEQlHzcM+Q0WpTWvGpc8+3IeXdMZAwcPzaIx1eotFFIZd5+n79cf3jVGA0xb0yAdRl+vN89xuPSbD1Mj5wHvZmci0lEA2MXdngIGbJsFy0BAJMAZzYx9gV1OZQ5M4gEJl/pjQNNpjWQ3mvCyWizvUBq19Ni0OQDFMJfLajN8bnVdxvk1AY4ST6j6EGjjYUuDpmZRab9hR+PO4cOAKfZtueEnXb7gemP2pqtrvnYUXHJ9CsVQ3EKJNGJFAaq5yPH2Ie0/PnkaLdafk20TZBsqHJ4TpziHv8Iw4z84ZX6YTajLyRTZGLWQsLOIfYUTfK7z4fy6wqBLYn5f27AgDy2dBG5VhmTv+XUVrMnvEi68u13Q6YbNQAS1bDXNqWIM9jdCpY8MTGlU= root@golive-surface-laptop'
 var keyVaultSecretsOfficer = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')
@@ -88,11 +89,19 @@ module serverNsg 'modules/nsg.bicep' = {
 
 var serverCustomData1 = replace(serverCustomData.outputs.customDataString, '{vaultBaseUrl}', kv.outputs.vaultUri)
 var serverCustomData2 = replace(serverCustomData1, '{audience}', 'https://${substring(environment().suffixes.keyvaultDns, 1)}')
+var serverCustomData3 = replace(serverCustomData2, '{tenant_id}', tenantId)
+var serverCustomData4 = replace(serverCustomData3, '{resource_group}', resourceGroup().name)
+var serverCustomData5 = replace(serverCustomData4, '{location}', location)
+var serverCustomData6 = replace(serverCustomData5, '{subnet_name}', network.outputs.aksSubnetName)
+var serverCustomData7 = replace(serverCustomData6, '{nsg_name}', serverNsg.outputs.name)
+var serverCustomData8 = replace(serverCustomData7, '{vnet_name}', network.outputs.vnetName)
+var serverCustomData9 = replace(serverCustomData8, '{route_table_name}', '${serverName}RouteTable')
+
 module vmServer1 'modules/vm.bicep' = {
-  name: 'rke2-server'
+  name: serverName
   scope: resourceGroup()
   params: {
-    vmName: 'rke2-server'
+    vmName: serverName
     adminUsername: 'greg'
     authenticationType: 'sshPublicKey'
     adminPasswordOrKey: sshPublicKey
@@ -101,7 +110,7 @@ module vmServer1 'modules/vm.bicep' = {
     netVnet: network.outputs.vnetName
     netSubnet: network.outputs.aksSubnetName
     networkSecurityGroupID: serverNsg.outputs.id
-    customData: serverCustomData2
+    customData: serverCustomData9
     userAssignedIdentity: vmIdentity.id
   }
 }
@@ -111,11 +120,13 @@ module agentNsg 'modules/nsg.bicep' = {
   params: {
     networkSecurityGroupName: 'agentNsg'
     location: location
-    rules: []
+    rules: [
+      Port22_Rule
+    ]
   }
 }
 
-var agentCustomData1 = replace(agentCustomData.outputs.customDataString, '<rke2server>', vmServer1.outputs.hostname)
+var agentCustomData1 = replace(agentCustomData.outputs.customDataString, '<rke2server>', vmServer1.outputs.privateIP)
 var agentCustomData2 = replace(agentCustomData1, '{audience}', 'https://${substring(environment().suffixes.keyvaultDns, 1)}')
 var agentCustomData3 = replace(agentCustomData2, '{vaultBaseUrl}', kv.outputs.vaultUri)
 module vmAgent1 'modules/vm.bicep' = {
