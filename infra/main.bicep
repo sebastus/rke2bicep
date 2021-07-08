@@ -7,7 +7,6 @@ param tenantId string = ''
 param userObjectId string = ''
 param userIPAddress string
 param userName string = 'somebody'
-param serverName string = 'rke2-server'
 
 var sshPublicKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDWuqe/MKBbgm9dWEHq9Qr9/qliQSbv6OQ/43SjQoKGBKn8QKKEAaSm8l9PAgKQ7tW/frSAX8VrD+pSFh3MqphFWZTfOvUZQHmts7TdoyxVTgfGO5ThQwHuQpBXEQlHzcM+Q0WpTWvGpc8+3IeXdMZAwcPzaIx1eotFFIZd5+n79cf3jVGA0xb0yAdRl+vN89xuPSbD1Mj5wHvZmci0lEA2MXdngIGbJsFy0BAJMAZzYx9gV1OZQ5M4gEJl/pjQNNpjWQ3mvCyWizvUBq19Ni0OQDFMJfLajN8bnVdxvk1AY4ST6j6EGjjYUuDpmZRab9hR+PO4cOAKfZtueEnXb7gemP2pqtrvnYUXHJ9CsVQ3EKJNGJFAaq5yPH2Ie0/PnkaLdafk20TZBsqHJ4TpziHv8Iw4z84ZX6YTajLyRTZGLWQsLOIfYUTfK7z4fy6wqBLYn5f27AgDy2dBG5VhmTv+XUVrMnvEi68u13Q6YbNQAS1bDXNqWIM9jdCpY8MTGlU= root@golive-surface-laptop'
 var keyVaultSecretsOfficer = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')
@@ -79,10 +78,12 @@ var serverNsgRules = [
   nsgRules.outputs.nodePort 
 ]
 
+param serverName string = 'rke2-server'
+
 module serverNsg 'modules/nsg.bicep' = {
   name: 'serverNsg'
   params: {
-    networkSecurityGroupName: 'serverNsg'
+    networkSecurityGroupName: '${serverName}Nsg'
     location: location
     rules: serverNsgRules
   }
@@ -117,10 +118,12 @@ module vmServer1 'modules/vm.bicep' = {
   }
 }
 
+param agentName string = 'rke2-agent01'
+
 module agentNsg 'modules/nsg.bicep' = {
   name: 'agentNsg'
   params: {
-    networkSecurityGroupName: 'agentNsg'
+    networkSecurityGroupName: '${agentName}Nsg'
     location: location
     rules: [
       Port22_Rule
@@ -132,10 +135,10 @@ var agentCustomData1 = replace(agentCustomData.outputs.customDataString, '<rke2s
 var agentCustomData2 = replace(agentCustomData1, '{audience}', 'https://${substring(environment().suffixes.keyvaultDns, 1)}')
 var agentCustomData3 = replace(agentCustomData2, '{vaultBaseUrl}', kv.outputs.vaultUri)
 module vmAgent1 'modules/vm.bicep' = {
-  name: 'rke2-agent01'
+  name: agentName
   scope: resourceGroup()
   params: {
-    vmName: 'rke2-agent01'
+    vmName: agentName
     adminUsername: userName
     authenticationType: 'sshPublicKey'
     adminPasswordOrKey: sshPublicKey

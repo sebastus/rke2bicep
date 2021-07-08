@@ -76,6 +76,7 @@ write_files:
         PATH="/var/lib/rancher/rke2/bin:$PATH"
       fi
       export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+      EOF
       ) >> /home/{username}/.profile
 
     path: /root/configureAdmin
