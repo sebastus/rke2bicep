@@ -5,6 +5,7 @@ param location string = 'uksouth'
 param suffix string = 'bigbang-${substring(uniqueString(resGroupName), 0, 4)}'
 param tenantId string = ''
 param userObjectId string = ''
+param userIPAddress string
 
 var sshPublicKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDWuqe/MKBbgm9dWEHq9Qr9/qliQSbv6OQ/43SjQoKGBKn8QKKEAaSm8l9PAgKQ7tW/frSAX8VrD+pSFh3MqphFWZTfOvUZQHmts7TdoyxVTgfGO5ThQwHuQpBXEQlHzcM+Q0WpTWvGpc8+3IeXdMZAwcPzaIx1eotFFIZd5+n79cf3jVGA0xb0yAdRl+vN89xuPSbD1Mj5wHvZmci0lEA2MXdngIGbJsFy0BAJMAZzYx9gV1OZQ5M4gEJl/pjQNNpjWQ3mvCyWizvUBq19Ni0OQDFMJfLajN8bnVdxvk1AY4ST6j6EGjjYUuDpmZRab9hR+PO4cOAKfZtueEnXb7gemP2pqtrvnYUXHJ9CsVQ3EKJNGJFAaq5yPH2Ie0/PnkaLdafk20TZBsqHJ4TpziHv8Iw4z84ZX6YTajLyRTZGLWQsLOIfYUTfK7z4fy6wqBLYn5f27AgDy2dBG5VhmTv+XUVrMnvEi68u13Q6YbNQAS1bDXNqWIM9jdCpY8MTGlU= root@golive-surface-laptop'
 var keyVaultSecretsOfficer = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')
@@ -24,6 +25,10 @@ module serverCustomData 'modules/serverCustomData.bicep' = {
 
 module agentCustomData 'modules/agentCustomData.bicep' = {
   name: 'agentCustomData'
+}
+
+module nsgRules 'modules/nsg-rules.bicep' = {
+  name: 'nsgRules'
 }
 
 resource vmIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
@@ -50,6 +55,37 @@ module kv 'modules/kv.bicep' = {
   }
 }
 
+var Port22_Rule = { 
+  name: 'SSH'
+  properties: {
+    priority: 1000
+    protocol: 'Tcp'
+    access: 'Allow'
+    direction: 'Inbound'
+    sourceAddressPrefix: userIPAddress
+    sourcePortRange: '*'
+    destinationAddressPrefix: '*'
+    destinationPortRange: '22'
+  }
+}
+
+var serverNsgRules = [ 
+  Port22_Rule
+  nsgRules.outputs.port10250
+  nsgRules.outputs.port6443
+  nsgRules.outputs.port9345
+  nsgRules.outputs.nodePort 
+]
+
+module serverNsg 'modules/nsg.bicep' = {
+  name: 'serverNsg'
+  params: {
+    networkSecurityGroupName: 'serverNsg'
+    location: location
+    rules: serverNsgRules
+  }
+}
+
 var serverCustomData1 = replace(serverCustomData.outputs.customDataString, '{vaultBaseUrl}', kv.outputs.vaultUri)
 var serverCustomData2 = replace(serverCustomData1, '{audience}', 'https://${substring(environment().suffixes.keyvaultDns, 1)}')
 module vmServer1 'modules/vm.bicep' = {
@@ -64,8 +100,18 @@ module vmServer1 'modules/vm.bicep' = {
     vmSize: 'Standard_D4_v4'
     netVnet: network.outputs.vnetName
     netSubnet: network.outputs.aksSubnetName
+    networkSecurityGroupID: serverNsg.outputs.id
     customData: serverCustomData2
     userAssignedIdentity: vmIdentity.id
+  }
+}
+
+module agentNsg 'modules/nsg.bicep' = {
+  name: 'agentNsg'
+  params: {
+    networkSecurityGroupName: 'agentNsg'
+    location: location
+    rules: []
   }
 }
 
@@ -84,6 +130,7 @@ module vmAgent1 'modules/vm.bicep' = {
     vmSize: 'Standard_D4_v4'
     netVnet: network.outputs.vnetName
     netSubnet: network.outputs.aksSubnetName
+    networkSecurityGroupID: agentNsg.outputs.id
     customData: agentCustomData3
     userAssignedIdentity: vmIdentity.id
   }

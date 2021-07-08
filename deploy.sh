@@ -14,5 +14,10 @@ az deployment group create \
     -g $AZURE_RESGRP \
     -f ${scriptPath}/infra/main.bicep \
     -n $AZURE_DEPLOY_NAME \
-    --parameters resGroupName=$AZURE_RESGRP location=$AZURE_REGION tenantId=$TENANT_ID userObjectId=$USER_OBJECT_ID \
+    --parameters \
+        resGroupName=$AZURE_RESGRP \
+        location=$AZURE_REGION \
+        tenantId=$TENANT_ID \
+        userObjectId=$USER_OBJECT_ID \
+        userIPAddress=$USER_IP_ADDRESS \
     --mode Complete

@@ -49,6 +49,14 @@ param userAssignedIdentity string
 @description('Name of the Network Security Group')
 param networkSecurityGroupName string = 'SecGroupNet'
 
+// @description('Array of rules for the nsg')
+// param networkSecurityGroupRules array = [
+//   {}
+// ]
+
+@description('Resource ID of nsg')
+param networkSecurityGroupID string
+
 var publicIPAddressName = '${vmName}PublicIP'
 var networkInterfaceName = '${vmName}NetInt'
 var osDiskType = 'StandardSSD_LRS'
@@ -63,6 +71,15 @@ var linuxConfiguration = {
     ]
   }
 }
+
+// module nsg './nsg.bicep' = {
+//   name: 'nsg'
+//   params: {
+//     networkSecurityGroupName: networkSecurityGroupName
+//     location: location
+//     rules: networkSecurityGroupRules
+//   }
+// }
 
 resource nic 'Microsoft.Network/networkInterfaces@2020-06-01' = {
   name: networkInterfaceName
@@ -83,30 +100,8 @@ resource nic 'Microsoft.Network/networkInterfaces@2020-06-01' = {
       }
     ]
     networkSecurityGroup: {
-      id: nsg.id
+      id: networkSecurityGroupID
     }
-  }
-}
-
-resource nsg 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
-  name: networkSecurityGroupName
-  location: location
-  properties: {
-    securityRules: [
-      {
-        name: 'SSH'
-        properties: {
-          priority: 1000
-          protocol: 'Tcp'
-          access: 'Allow'
-          direction: 'Inbound'
-          sourceAddressPrefix: '*'
-          sourcePortRange: '*'
-          destinationAddressPrefix: '*'
-          destinationPortRange: '22'
-        }
-      }
-    ]
   }
 }
 
@@ -173,3 +168,4 @@ resource vm 'Microsoft.Compute/virtualMachines@2020-06-01' = {
 output adminUsername string = adminUsername
 output hostname string = publicIP.properties.dnsSettings.fqdn
 output sshCommand string = 'ssh ${adminUsername}@${publicIP.properties.dnsSettings.fqdn}'
+output privateIP string = nic.properties.ipConfigurations[0].properties.privateIPAddress
