@@ -68,9 +68,24 @@ write_files:
     path: /etc/rancher/rke2/config.yaml
     owner: root:root
 
+  - content: |
+      chmod 666 /etc/rancher/rke2/rke2.yaml
+      echo $(cat <<EOF
+      # set PATH so it includes rancher bin if it exists
+      if [ -d "/var/lib/rancher/rke2/bin" ] ; then
+        PATH="/var/lib/rancher/rke2/bin:$PATH"
+      fi
+      export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+      ) >> /home/{username}/.profile
+
+    path: /root/configureAdmin
+    owner: root:root
+
+
 runcmd:
   - [ chmod, +x, /root/installRKE2server ]
   - [ chmod, +x, /root/storeServerToken ]
+  - [ chmod, +x, /root/configureAdmin ]
 
 
   - [ sh, -c, echo \"####################\" ]
@@ -86,6 +101,11 @@ runcmd:
   - [ sh, -c, echo \"Storing join token in kv\" ]
   - [ sh, -c, echo \"####################\" ]
   - [ /root/storeServerToken ]
+
+  - [ sh, -c, echo \"####################\" ]
+  - [ sh, -c, echo \"Configuring access to kubectl\" ]
+  - [ sh, -c, echo \"####################\" ]
+  - [ /root/configureAdmin ]
 
 '''
 

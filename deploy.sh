@@ -20,4 +20,5 @@ az deployment group create \
         tenantId=$TENANT_ID \
         userObjectId=$USER_OBJECT_ID \
         userIPAddress=$USER_IP_ADDRESS \
+        userName=$USER_NAME \
     --mode Complete
