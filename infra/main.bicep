@@ -138,6 +138,9 @@ var agentCustomData3 = replace(agentCustomData2, '{vaultBaseUrl}', kv.outputs.va
 module vmAgent1 'modules/vm.bicep' = {
   name: agentName
   scope: resourceGroup()
+  dependsOn: [
+    vmServer1
+  ]
   params: {
     vmName: agentName
     adminUsername: userName

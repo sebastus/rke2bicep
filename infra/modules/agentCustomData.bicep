@@ -28,9 +28,18 @@ write_files:
     owner: root:root
 
   - content: |
+      #!/bin/bash
+
       audience=$(urlencode '{audience}')
       access_token=$(curl -s 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource='$audience -H Metadata:true | jq -r ".access_token")
-      token=$(curl '{vaultBaseUrl}secrets/rke2ServerJoinToken?api-version=2016-10-01' -H "Authorization: Bearer ${access_token}" | jq -r ".value")
+
+      let attempts=4
+      while : ; do        
+        token=$(curl '{vaultBaseUrl}secrets/rke2ServerJoinToken?api-version=2016-10-01' -H "Authorization: Bearer ${access_token}" | jq -r ".value")
+        echo $token
+        [[ attempts-- -gt 0 && "$token" == "null" ]] || break
+        sleep 20
+      done
       echo "token: ${token}" >> "/etc/rancher/rke2/config.yaml"
 
     path: /root/fetchServerToken
